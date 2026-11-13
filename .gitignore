@@ -1,0 +1,25 @@
+# Gradle & Build outputs
+.gradle/
+build/
+out/
+READY_MOD/
+
+# IDEs (IntelliJ IDEA, Eclipse, VS Code)
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.vscode/
+
+# Minecraft runtime & logs
+run/
+logs/
+crash-reports/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
