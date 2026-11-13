@@ -8,7 +8,7 @@ The original addon was written by **KDR4** (MIT). The ghost logic, the clip and 
 original code; what was ported is everything that connects the addon to BBS, because BBS FS 2.4 has no addon
 API like 2.7 has (details below).
 
-[Русская версия](README.ru.md)
+
 
 > **Status.** Ported and checked by compiling against the BBS FS 2.4 sources (see *Verification*). Please test
 > on a copy of your project and report problems in Issues.
