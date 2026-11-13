@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"package": "com.afterimage.bbs.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"client": [
+		"BaseFilmControllerMixin",
+		"WorldFilmControllerMixin",
+		"ModelFormRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

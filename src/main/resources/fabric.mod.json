@@ -1,0 +1,22 @@
+{
+	"schemaVersion": 1,
+	"id": "afterimage",
+	"version": "${version}",
+	"name": "BBS AM (AfterMotion) - BBS FS 2.4 port",
+	"description": "AfterMotion: fading afterimages for BBS films, set up with a clip on the timeline. Port for BBS FS 2.4.",
+	"authors": ["KDR4", "port to BBS FS 2.4"],
+	"license": "MIT",
+	"icon": "assets/afterimage/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"bbs-addon": ["com.afterimage.bbs.AfterimageAddon"]
+	},
+	"mixins": ["afterimage.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.15.0",
+		"minecraft": "1.20.1",
+		"java": ">=17",
+		"fabric-api": "*",
+		"bbs": "*"
+	}
+}

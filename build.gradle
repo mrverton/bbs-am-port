@@ -1,0 +1,165 @@
+import groovy.json.JsonSlurper
+import java.util.zip.ZipFile
+
+plugins {
+	id 'fabric-loom' version '1.15-SNAPSHOT'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+/* The BBS FS 2.4 jar is searched for automatically, so it does not matter where it lies and how it
+ * is named. Looked through, in this order: libs/ of the project, the project folder, its parent
+ * folder and the parent of that. A jar counts when it contains BBS's own main class and its
+ * fabric.mod.json says version 2.4. To point at a jar by hand: gradle.properties -> bbs_jar_path=C:/path/to/bbs.jar */
+def wrongJars = []
+def searched = []
+
+def locateBbsJar = { File root ->
+	List<File> dirs = []
+	List<File> candidates = [new File(root, "libs"), root, root.parentFile, root.parentFile == null ? null : root.parentFile.parentFile]
+
+	for (File d : candidates)
+	{
+		if (d != null && d.isDirectory() && !dirs.contains(d))
+		{
+			dirs.add(d)
+		}
+	}
+
+	for (File dir : dirs)
+	{
+		searched.add(dir.absolutePath)
+
+		File[] listed = dir.listFiles()
+
+		if (listed == null)
+		{
+			continue
+		}
+
+		List<File> jars = listed.findAll { File f -> f.isFile() && f.name.toLowerCase().endsWith(".jar") }.sort { File f -> f.name }
+
+		for (File jar : jars)
+		{
+			ZipFile zip = null
+
+			try
+			{
+				zip = new ZipFile(jar)
+
+				if (zip.getEntry("mchorse/bbs_mod/BBSMod.class") == null)
+				{
+					continue
+				}
+
+				String version = "?"
+				def entry = zip.getEntry("fabric.mod.json")
+
+				if (entry != null)
+				{
+					Reader reader = new InputStreamReader(zip.getInputStream(entry), "UTF-8")
+
+					try
+					{
+						version = String.valueOf(new JsonSlurper().parse(reader).version)
+					}
+					finally
+					{
+						reader.close()
+					}
+				}
+
+				if (version.startsWith("2.4") || version == "?")
+				{
+					return jar
+				}
+
+				wrongJars.add(jar.name + " (BBS version " + version + ")")
+			}
+			catch (Exception ignored)
+			{
+				/* Not a readable jar: skip it. */
+			}
+			finally
+			{
+				if (zip != null)
+				{
+					zip.close()
+				}
+			}
+		}
+	}
+
+	return null
+}
+
+File bbsJar = null
+
+if (project.hasProperty("bbs_jar_path"))
+{
+	bbsJar = new File(project.property("bbs_jar_path").toString())
+}
+else
+{
+	bbsJar = locateBbsJar(projectDir)
+}
+
+if (bbsJar == null || !bbsJar.isFile())
+{
+	String message = "BBS FS 2.4 jar not found.\nPut the BBS FS 2.4 mod file (Minecraft 1.20.1) into any of these folders (any file name):\n"
+
+	for (String d : searched)
+	{
+		message += "    " + d + "\n"
+	}
+
+	if (!wrongJars.isEmpty())
+	{
+		message += "\nBBS jars of the WRONG version were found (need 2.4): " + wrongJars.join(", ") + "\n"
+	}
+
+	throw new GradleException(message)
+}
+
+logger.lifecycle("BBS FS jar: " + bbsJar.absolutePath)
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	/* The addon is built straight against the finished BBS FS jar that lies in libs/, so there is
+	 * nothing to publish first. Loom remaps it like any other mod. Only the classes are needed:
+	 * BBS's own Sodium and Iris parts are not pulled in. */
+	modImplementation files(bbsJar)
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 17
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+jar {
+	/* The license travels inside the mod file itself, as Fabric mods usually do. */
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
